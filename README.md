@@ -12,7 +12,7 @@ This is *unix setup only (at least for now). It works Windows to, but you will h
 * run the following command `./init.sh` -> this script will setup up everything (it should work; i couldn't test it because the project was already set it up on my machine manually)
 * if everything went well `python manage.py runserver` will run the project
 
-## Also I included flake8 as a hood in .git/hooks, so code can't be commited if it doesn't follow flake8. good luck 😈
+## Also I included flake8 as a hook in .git/hooks, so code can't be commited if it doesn't follow flake8. good luck 😈
 
 
 ### Have fun!!!!
