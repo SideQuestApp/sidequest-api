@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'rest_framework',
     # CUSTOM
     'common',
+    'profiles',
 ]
 
 MIDDLEWARE = [
@@ -127,6 +128,11 @@ STATIC_URL = 'static/'
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Global Variables
+DATE_INPUT_FORMATS = ['%Y-%m-%d']
+AUTH_USER_MODEL = 'profiles.User'
 
 
 # Heroku Conf - This will be removed for production
