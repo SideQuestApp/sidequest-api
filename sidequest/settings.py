@@ -1,6 +1,7 @@
 import os
 import django_heroku
 from pathlib import Path
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +28,8 @@ INSTALLED_APPS = [
     # CUSTOM
     'common',
     'profiles',
+    # OAuth,
+    'oauth2_provider'
 ]
 
 MIDDLEWARE = [
@@ -62,12 +65,7 @@ WSGI_APPLICATION = 'sidequest.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ['DB_ENGINE'],
-        'NAME': os.environ['DB_NAME'],
-        'USER': os.environ['DB_USER'],
-        'PASSWORD': os.environ['DB_PASSWORD'],
-        'HOST': os.environ['DB_HOST'],
-        'PORT': os.environ['DB_PORT'],
+        'default': dj_database_url.config()
     }
 
 }
@@ -137,3 +135,6 @@ AUTH_USER_MODEL = 'profiles.User'
 
 # Heroku Conf - This will be removed for production
 django_heroku.settings(locals())
+
+# Test OAuth, will use Django Admin login page for now
+LOGIN_URL = '/admin/login/'
