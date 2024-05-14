@@ -113,6 +113,8 @@ CORS_ORIGIN_WHITELIST = [
     'https://squest-main-6891f2f4d8dc.herokuapp.com/',
 ]
 
+CSRF_TRUSTED_ORIGINS = ['https://squest-staging-3d0f252e138e.herokuapp.com',
+                        'https://squest-main-6891f2f4d8dc.herokuapp.com',]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
