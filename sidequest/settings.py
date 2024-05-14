@@ -7,13 +7,12 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = (True if os.environ['DEBUG'] == 'True' else False)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DEBUG']
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -64,11 +63,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'sidequest.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'default': dj_database_url.config()
-    }
-
+    'default': dj_database_url.config(default=os.environ['DB_VERCEL'])
 }
+
+if (True if os.environ['DEV_MODE'] == 'True' else False):
+    DATABASES['default'] = {
+        'ENGINE': os.environ['DB_ENGINE'],
+        'NAME': os.environ['DB_NAME'],
+        'USER': os.environ['DB_USER'],
+        'PASSWORD': os.environ['DB_PASSWORD'],
+        'HOST': os.environ['DB_HOST'],
+        'PORT': os.environ['DB_PORT'],
+    }
 
 
 # Password validation
@@ -93,7 +99,6 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
-    # ! This will change once we implement clerk
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ]
@@ -104,8 +109,12 @@ REST_FRAMEWORK = {
 CORS_ORIGIN_WHITELIST = [
     'http://127.0.0.1:8000',
     'http://127.0.0.1:3000',
+    'https://squest-staging-3d0f252e138e.herokuapp.com',
+    'https://squest-main-6891f2f4d8dc.herokuapp.com/',
 ]
 
+CSRF_TRUSTED_ORIGINS = ['https://squest-staging-3d0f252e138e.herokuapp.com',
+                        'https://squest-main-6891f2f4d8dc.herokuapp.com',]
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
