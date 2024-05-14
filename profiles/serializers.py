@@ -1,3 +1,4 @@
+from datetime import datetime
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.core.validators import EmailValidator
@@ -6,7 +7,7 @@ from django.utils.timezone import now
 from .models import User
 
 
-class UserRegistrationSerializer(serializers.Serializer):
+class UserRegistrationSerializer(serializers.ModelSerializer):
     """
     * Serializer for user registration
     * Match password and verify password
@@ -25,38 +26,41 @@ class UserRegistrationSerializer(serializers.Serializer):
 
     class Meta:
         model = User
-        fields = ('email', 'password', 'password2', 'first_name', 'last_name', 'dob', 'phone_number', 'profile_img')
+        fields = ('email', 'password', 'password2',
+                  'first_name', 'last_name', 'dob',
+                  'phone_number', 'profile_img')
 
-        def validate(self, attrs):
-            """
-            * Check passwords match
-            * Validate email
-            """
-            if attrs['password'] != attrs['password2']:
-                raise serializers.ValidationError({'error': 'Passwords do not match'})
+    def validate(self, attrs):
+        """
+        * Check passwords match
+        * Validate email
+        """
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({'error': 'Passwords do not match'})
 
-            dob = attrs['dob']
-            today = now().date()
-            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            if age < 18:
-                raise serializers.ValidationError({'error': 'You must be at least 18 years old.'})
+        # Check if the user is 18+
+        dob = datetime.strptime(attrs['dob'], '%Y-%m-%d').date()
+        today = now().date()
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        if age < 18:
+            raise serializers.ValidationError({'error': 'You must be at least 18 years old.'})
 
-            return attrs
+        return attrs
 
-        def create(self, validated_data):
-            """
-            * Creates an User instance with validated data
-            """
-            user = User.objects.create(
-                email=validated_data['email'],
-                first_name=validated_data['first_name'],
-                last_name=validated_data['last_name'],
-                dob=validated_data['dob'],
-                phone_number=validated_data['phone_number'],
-                profile_img=validated_data['profile_img'],
-            )
+    def create(self, validated_data):
+        """
+        * Creates an User instance with validated data
+        """
+        user = User.objects.create(
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            dob=validated_data['dob'],
+            phone_number=validated_data['phone_number'],
+            profile_img=validated_data['profile_img'],
+        )
 
-            user.set_password(validated_data['password'])
-            user.save()
+        user.set_password(validated_data['password'])
+        user.save()
 
-            return user
+        return user
