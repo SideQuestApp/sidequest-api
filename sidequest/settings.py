@@ -7,13 +7,12 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = (True if os.environ['DEBUG'] == 'True' else False)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ['DEBUG']
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -64,11 +63,18 @@ TEMPLATES = [
 WSGI_APPLICATION = 'sidequest.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'default': dj_database_url.config()
-    }
-
+    'default': dj_database_url.config(default=os.environ['DB_VERCEL'])
 }
+
+if (True if os.environ['DEV_MODE'] == 'True' else False):
+    DATABASES['default'] = {
+        'ENGINE': os.environ['DB_ENGINE'],
+        'NAME': os.environ['DB_NAME'],
+        'USER': os.environ['DB_USER'],
+        'PASSWORD': os.environ['DB_PASSWORD'],
+        'HOST': os.environ['DB_HOST'],
+        'PORT': os.environ['DB_PORT'],
+    }
 
 
 # Password validation
