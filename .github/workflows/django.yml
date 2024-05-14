@@ -46,6 +46,8 @@ jobs:
       env:
         SECRET_KEY: ${{ secrets.SECRET_KEY }}
         DEBUG: ${{ secrets.DEBUG }}
+        DB_VERCEL: ${{ secrets.DB_VERCEL }}
+        DEV_MODE: ${{ secrets.DEV_MODE }}
         DB_ENGINE: 'django.db.backends.postgresql'
         DB_NAME: 'test_db'
         DB_USER: 'postgres'

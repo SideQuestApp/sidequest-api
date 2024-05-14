@@ -33,7 +33,7 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractBaseModel):
     email = models.CharField(max_length=70, unique=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=70)
-    dob = models.CharField(null=True)
+    dob = models.CharField(max_length=10, null=True)
     phone_number = models.CharField(max_length=20)
     level = models.IntegerField(default=1)
     title = models.CharField(max_length=40, null=True)
