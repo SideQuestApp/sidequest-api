@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from ..models import VerifyUserEmail
 
 
 class CustomUserTest(TestCase):
@@ -62,3 +63,45 @@ class CustomUserTest(TestCase):
         self.assertEqual(50, user.xp)
         self.assertEqual(2, user.level)
         self.assertEqual(int(50 * (user.level ** 1.2)), user.xp_to_lvl_up)
+
+
+class VerifyTokenEmailTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(email='test@squest.app', password='password', first_name='Steve', last_name='Jobs')
+        self.token = VerifyUserEmail.objects.create(user=self.user)
+
+    def test_random_token_on_user_creating(self):
+        """
+        * Test: activate_token sets is_active to true upon user creating
+        * Test: generates new token
+        """
+        self.assertNotEqual(self.token.token, "")
+        self.assertEqual(self.token.is_active, True)
+        self.assertEqual(self.token.user.pk, self.user.pk)
+
+    def test_activate_token_method(self):
+        """
+        * Test: test activate_test method
+        * Test: Sets is_active to true
+        * Test: creates new token
+        """
+        self.token.deactivate_token()
+        old_token_instance_token = self.token.token
+
+        self.token.activate_token()
+
+        self.assertEqual(self.token.is_active, True)
+        self.assertNotEqual(self.token.token, old_token_instance_token)
+
+    def test_deactive_token_method(self):
+        """
+        * Test: set is_active to false
+        * Test: create 20 length token
+        """
+        self.token.activate_token()
+        self.assertEqual(self.token.is_active, True)
+        self.assertEqual(len(self.token.token), 6)
+
+        self.token.deactivate_token()
+        self.assertEqual(self.token.is_active, False)
+        self.assertEqual(len(self.token.token), 20)
