@@ -1,7 +1,17 @@
 import os
+import secrets
+import string
 from django.db import models
 from common.models import AbstractBaseModel
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+
+
+def generate_unique_token(len):
+    """
+    * Generates random token (LEN=6)
+    """
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(len))
 
 
 class UserManager(BaseUserManager):
@@ -78,3 +88,38 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractBaseModel):
         if self.xp >= self.xp_to_lvl_up:
             self.xp = self.xp - self.xp_to_lvl_up
         self.change_xp_to_lvl_up()
+
+
+class VerifyUserEmail(models.Model):
+    """
+    * Model to generate token for a user to verify email
+    * It will create a 1to1 relationship with a user upon user creation
+    * Is_active will be false upon verifing the email
+    * Is_active can be true if the user press forgot my password
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='verifyemail_user')
+    token = models.CharField(max_length=20, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        """
+        * Generates unique token upon instance creation
+        """
+        if not self.token:
+            self.token = generate_unique_token(6)
+        super().save(*args, **kwargs)
+
+    def activate_token(self):
+        """
+        * Set the is_activate to true
+        * Generate new token
+        """
+        self.is_active = True
+        self.token = generate_unique_token(6)
+
+    def deactivate_token(self):
+        """
+        * Sets the in_active to false
+        """
+        self.token = generate_unique_token(20)
+        self.is_active = False
