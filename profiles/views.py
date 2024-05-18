@@ -7,6 +7,7 @@ from .serializers import UserRegistrationSerializer, OTPSerializer, ResetPasswor
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse, JsonResponse
 from twilio.rest import Client
+from .permissions import VerifiedUsersAccessOnly, PremiumUsersAccessOnly
 
 
 client = Client(os.environ['TWILIO_ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
@@ -21,9 +22,18 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
 
 
-class TestApiEndpoint(ProtectedResourceView):
-    def get(self, request, *args, **kwargs):
-        return HttpResponse('Hello, OAuth2!')
+class TestApiEndpointVerifiedUsers(generics.CreateAPIView):
+    permission_classes = (VerifiedUsersAccessOnly,)
+
+    def get(self, request):
+        return Response({'message': 'Hello Verified user from Oauth2.0 ;)'}, status=status.HTTP_200_OK)
+
+
+class TestApiEndpointPremiumUsers(generics.CreateAPIView):
+    permission_classes = (PremiumUsersAccessOnly,)
+
+    def get(self, request):
+        return Response({'message': 'Hello Premium user from Oauth2.0 ;)'}, status=status.HTTP_200_OK)
 
 
 class OTPView(generics.CreateAPIView):
