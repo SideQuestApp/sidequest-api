@@ -1,10 +1,12 @@
 from datetime import datetime
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from rest_framework.response import Response
+from django.db import IntegrityError
 from django.core.validators import EmailValidator
 from django.contrib.auth.password_validation import validate_password
 from django.utils.timezone import now
-from .models import User
+from .models import User, VerifyUserEmail
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -62,5 +64,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
         user.set_password(validated_data['password'])
         user.save()
+
+        try:
+            verify_email_token = VerifyUserEmail.objects.create(user=user)
+            verify_email_token.save()
+        except IntegrityError as e:
+            return Response({'error': e})
 
         return user
