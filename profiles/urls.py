@@ -3,6 +3,9 @@ from profiles import views
 import oauth2_provider.views as oauth2_views
 from django.conf import settings
 
+
+app_name = 'profiles'
+
 # OAuth2 provider endpoints
 oauth2_endpoint_views = [
     path('authorize/', oauth2_views.AuthorizationView.as_view(), name="authorize"),
