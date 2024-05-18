@@ -72,3 +72,28 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             return Response({'error': e})
 
         return user
+
+
+class OTPSerializer(serializers.Serializer):
+    """
+    * Serializer for the OTP Reset Password Workflow.
+    * We only need the phone number of the user to send the OTP
+    """
+    phone_number = serializers.CharField(read_only=True)
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    """
+
+    """
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password,])
+    password2 = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs):
+        """
+        * Check passwords match
+        * Validate email
+        """
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({'error': 'Passwords do not match'})
+        return attrs
