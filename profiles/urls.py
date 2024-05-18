@@ -31,7 +31,8 @@ if settings.DEBUG:
 
 urlpatterns = [
     path('register/', view=views.RegisterView.as_view(), name='register'),
-    path('hello/', views.TestApiEndpoint.as_view()),
+    path('hello_premium/', views.TestApiEndpointPremiumUsers.as_view(), name='hello_premium'),
+    path('hello_verified/', views.TestApiEndpointVerifiedUsers.as_view(), name='hello_verified'),
     path('o/', include((oauth2_endpoint_views, 'oauth2_provider'), namespace="oauth2_provider")),
     path('forgotpassword/', views.OTPView.as_view(), name='forgotpass'),
     path('resetpassword/', views.ResetPasswordView.as_view(), name='resetpass'),
