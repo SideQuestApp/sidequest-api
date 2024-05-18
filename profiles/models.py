@@ -116,6 +116,7 @@ class VerifyUserEmail(models.Model):
         """
         self.is_active = True
         self.token = generate_unique_token(6)
+        self.save()
 
     def deactivate_token(self):
         """
@@ -123,3 +124,4 @@ class VerifyUserEmail(models.Model):
         """
         self.token = generate_unique_token(20)
         self.is_active = False
+        self.save()
