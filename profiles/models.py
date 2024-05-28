@@ -90,7 +90,7 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractBaseModel):
         self.change_xp_to_lvl_up()
 
 
-class VerifyUserEmail(models.Model):
+class VerifyUserEmail(AbstractBaseModel):
     """
     * Model to generate token for a user to verify email
     * It will create a 1to1 relationship with a user upon user creation

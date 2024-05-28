@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     # CUSTOM
     'common',
     'profiles',
+    'quest'
 ]
 
 AUTHENTICATION_BACKENDS = [
