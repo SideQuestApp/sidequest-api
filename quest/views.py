@@ -21,8 +21,8 @@ class GetQuestTrees(generics.ListCreateAPIView):
 
 class GetFirstQuestNode(generics.ListCreateAPIView):
     permission_classes = (AllowAny, )
-    queryset = QuestTree.objects.all()
-    serializer_class = QuestNodeSerializer
+    queryset = QuestNode.objects.all()
+    serializer_class = QuestTreeSerializer
 
     def get_queryset(self):
         uuid = self.request.query_params.get('quest_uuid')
@@ -30,5 +30,6 @@ class GetFirstQuestNode(generics.ListCreateAPIView):
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        serializer = QuestNodeSerializer(queryset, many=True)
+        node_query = self.queryset.get(pk=queryset.first_node.pk)
+        serializer = QuestNodeSerializer(node_query, many=False)
         return Response(serializer.data)
