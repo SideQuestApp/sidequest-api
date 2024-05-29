@@ -89,7 +89,7 @@ class SetQuestTreeStatus(generics.GenericAPIView):
     }
 
     def get_queryset(self):
-        uuid = self.request.query_params.get('node_uuid')
+        uuid = self.request.query_params.get('tree_uuid')
         return QuestTree.objects.get(pk=uuid)
 
     def get(self, request, *args, **kwargs):
