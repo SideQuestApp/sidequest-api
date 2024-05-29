@@ -56,7 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractBaseModel):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
-    current_quest_node = models.ForeignKey(QuestNode, on_delete=models.CASCADE, 
+    current_quest_node = models.ForeignKey(QuestNode, on_delete=models.CASCADE,
                                            related_name='current_node', blank=True, null=True)
 
     objects = UserManager()
