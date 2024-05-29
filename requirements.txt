@@ -37,7 +37,7 @@ zope.event==5.0
 zope.interface==6.3
 django-oauth-toolkit
 twilio
-langchain==0.2.9
+langchain==0.2.1
 langchain-community 
 langchainhub 
 langchain-openai 
