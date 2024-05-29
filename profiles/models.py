@@ -4,6 +4,7 @@ import string
 from django.db import models
 from common.models import AbstractBaseModel
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from quest.models import QuestNode
 
 
 def generate_unique_token(len):
@@ -55,6 +56,8 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractBaseModel):
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
+    current_quest_node = models.ForeignKey(QuestNode, on_delete=models.CASCADE, 
+                                           related_name='current_node', blank=True, null=True)
 
     objects = UserManager()
     USERNAME_FIELD = 'email'

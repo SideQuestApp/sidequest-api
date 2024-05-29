@@ -1,20 +1,34 @@
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
-from .models import QuestTree, QuestMap, QuestNode, NodeRelation
+from rest_framework.response import Response
+from .models import QuestTree, QuestNode
 from rest_framework.permissions import AllowAny
+from .serializers import QuestTreeSerializer, QuestNodeSerializer
 
 
-class GetQuestNodes(generics.CreateAPIView):
+class GetQuestTrees(generics.ListCreateAPIView):
     permission_classes = (AllowAny, )
     queryset = QuestTree.objects.all()
+    serializer_class = QuestTreeSerializer
 
-    def get(self, request, *args, **kwargs):
-        quest_uuid = request.query_params.get('quest_id')
-        quest = QuestTree.objects.get(pk=quest_uuid)
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = QuestTreeSerializer(queryset, many=True)
 
-        relation_table = QuestMap.objects.get(pk=quest.relations.pk)
+        return Response(serializer.data)
 
-        node_relations = NodeRelation.objects.filter(relations_map=relation_table)
 
-        return HttpResponse(node_relations)
+class GetFirstQuestNode(generics.ListCreateAPIView):
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+    serializer_class = QuestNodeSerializer
+
+    def get_queryset(self):
+        uuid = self.request.query_params.get('quest_uuid')
+        return QuestTree.objects.get(pk=uuid)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = QuestNodeSerializer(queryset, many=True)
+        return Response(serializer.data)
