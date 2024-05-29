@@ -101,3 +101,10 @@ class SetQuestTreeStatus(generics.GenericAPIView):
         queryset.save()
         serializer = QuestTreeSerializer(queryset, many=False)
         return Response(serializer.data)
+
+
+class CreateQuest(generics.GenericAPIView):
+    """
+    """
+    pass
+    # TODO Call quest generator, take input and make quest
