@@ -11,7 +11,6 @@ SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = (True if os.environ['DEBUG'] == 'True' else False)
-
 ALLOWED_HOSTS = []
 
 # Application definition
@@ -81,7 +80,6 @@ if (True if os.environ['DEV_MODE'] == 'True' else False):
         'HOST': os.environ['DB_HOST'],
         'PORT': os.environ['DB_PORT'],
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
