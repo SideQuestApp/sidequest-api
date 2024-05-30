@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
@@ -89,7 +90,7 @@ class SetQuestTreeStatus(generics.GenericAPIView):
     }
 
     def get_queryset(self):
-        uuid = self.request.query_params.get('node_uuid')
+        uuid = self.request.query_params.get('tree_uuid')
         return QuestTree.objects.get(pk=uuid)
 
     def get(self, request, *args, **kwargs):
@@ -106,5 +107,48 @@ class SetQuestTreeStatus(generics.GenericAPIView):
 class CreateQuest(generics.GenericAPIView):
     """
     """
-    pass
+    # TODO Optimize this better
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+
+        quest_tree = QuestTree.objects.create(
+            name=body['mainQuest']["title"],
+            description=body['mainQuest']["description"],
+            status="NS",
+            completion_exp=1000,
+            price_low=100,
+            price_high=200
+        )
+        uuid_map = {}
+        # ! Remember to adjust for when values are dynamic
+        for quest in body["mainQuest"]["miniQuests"]:
+            quest_node = QuestNode.objects.create(
+                name=quest["title"],
+                description=quest["description"],
+                longitude=quest["longitude"],
+                latitude=quest["latitude"],
+                price_low=10,
+                price_high=25,
+                completion_experience=100,
+                quest=quest_tree
+            )
+            uuid_map[quest["uuid"]] = quest_node
+            if quest["uuid"] == "2":
+                quest_tree.first_node = quest_node
+                quest_tree.save()
+
+        quest_tree.last_node = quest_node
+        quest_tree.save()
+
+        for sequence in body["questSequence"]:
+            current_node = uuid_map[sequence["prev"]]
+            for next_node in sequence["next"]:
+                current_node.next.add(uuid_map[next_node])
+                current_node.save()
+        return HttpResponse('Created a new quest without error')
+
     # TODO Call quest generator, take input and make quest
