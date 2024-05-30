@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from .models import QuestTree, QuestNode
 from rest_framework.permissions import AllowAny
 from .serializers import QuestTreeSerializer, QuestNodeSerializer
+from django.shortcuts import get_object_or_404
 
 
 class GetQuestTrees(generics.ListCreateAPIView):
@@ -20,6 +21,22 @@ class GetQuestTrees(generics.ListCreateAPIView):
         return Response(serializer.data)
 
 
+class GetQuestTree(generics.ListCreateAPIView):
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+    serializer_class = QuestTreeSerializer
+
+    def get_queryset(self):
+        uuid = self.request.query_params.get('quest_uuid')
+        return get_object_or_404(QuestTree, pk=uuid)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = QuestTreeSerializer(queryset, many=False)
+
+        return Response(serializer.data)
+
+
 class GetFirstQuestNode(generics.ListCreateAPIView):
     permission_classes = (AllowAny, )
     queryset = QuestNode.objects.all()
@@ -27,7 +44,7 @@ class GetFirstQuestNode(generics.ListCreateAPIView):
 
     def get_queryset(self):
         uuid = self.request.query_params.get('quest_uuid')
-        return QuestTree.objects.get(pk=uuid)
+        return get_object_or_404(QuestTree, pk=uuid)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -43,13 +60,17 @@ class GetNextAvailableNodes(generics.ListCreateAPIView):
 
     def get_queryset(self):
         uuid = self.request.query_params.get('node_uuid')
-        return QuestNode.objects.get(pk=uuid)
+
+        return get_object_or_404(QuestNode, pk=uuid)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        node_query = queryset.next
-        serializer = QuestNodeSerializer(node_query, many=True)
-        return Response(serializer.data)
+        if queryset:
+            node_query = queryset.next
+            serializer = QuestNodeSerializer(node_query, many=True)
+            return Response(serializer.data)
+        else:
+            return Response('No matching nodes')
 
 
 class SetNodeStatus(generics.GenericAPIView):
@@ -65,7 +86,8 @@ class SetNodeStatus(generics.GenericAPIView):
 
     def get_queryset(self):
         uuid = self.request.query_params.get('node_uuid')
-        return QuestNode.objects.get(pk=uuid)
+
+        return get_object_or_404(QuestNode, pk=uuid)
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -91,7 +113,7 @@ class SetQuestTreeStatus(generics.GenericAPIView):
 
     def get_queryset(self):
         uuid = self.request.query_params.get('tree_uuid')
-        return QuestTree.objects.get(pk=uuid)
+        return get_object_or_404(QuestTree, pk=uuid)
 
     def get(self, request, *args, **kwargs):
         queryset = self.get_queryset()
