@@ -9,18 +9,6 @@ from .serializers import QuestTreeSerializer, QuestNodeSerializer
 from django.shortcuts import get_object_or_404
 
 
-class GetQuestTrees(generics.ListCreateAPIView):
-    permission_classes = (AllowAny, )
-    queryset = QuestTree.objects.all()
-    serializer_class = QuestTreeSerializer
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = QuestTreeSerializer(queryset, many=True)
-
-        return Response(serializer.data)
-
-
 class GetQuestTree(generics.ListCreateAPIView):
     permission_classes = (AllowAny, )
     queryset = QuestTree.objects.all()
@@ -28,11 +16,17 @@ class GetQuestTree(generics.ListCreateAPIView):
 
     def get_queryset(self):
         uuid = self.request.query_params.get('quest_uuid')
-        return get_object_or_404(QuestTree, pk=uuid)
+        if uuid:
+            return get_object_or_404(QuestTree, pk=uuid)
+        else:
+            return QuestTree.objects.all()
 
     def list(self, request, *args, **kwargs):
+
         queryset = self.get_queryset()
-        serializer = QuestTreeSerializer(queryset, many=False)
+        serializer = QuestTreeSerializer(queryset,
+                                         many=False if request.query_params.get('quest_uuid')
+                                         else True)
 
         return Response(serializer.data)
 

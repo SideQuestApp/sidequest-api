@@ -8,6 +8,7 @@ from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse, JsonResponse
 from twilio.rest import Client
 from .permissions import VerifiedUsersAccessOnly, PremiumUsersAccessOnly
+from django.shortcuts import get_object_or_404
 
 
 client = Client(os.environ['TWILIO_ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
@@ -48,10 +49,13 @@ class OTPView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny, )
 
+    def get_queryset(self, email):
+        return get_object_or_404(User, email=email)
+
     def get(self, request, *args, **kwargs):
 
         email = request.query_params.get('email')
-        users_with_email = User.objects.get(email=email)
+        users_with_email = self.get_queryset(email)
         user = OTPSerializer(users_with_email)
         print(user.data)
         # Twilio clien
