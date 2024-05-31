@@ -19,12 +19,12 @@ class GetQuestTree(generics.ListCreateAPIView):
         if uuid:
             return get_object_or_404(QuestTree, pk=uuid)
         else:
-            return QuestTree.objects.all()
+            return
 
     def list(self, request, *args, **kwargs):
 
         queryset = self.get_queryset()
-        serializer = QuestTreeSerializer(queryset,
+        serializer = QuestTreeSerializer(queryset if queryset else self.queryset.all(),
                                          many=False if request.query_params.get('quest_uuid')
                                          else True)
 
