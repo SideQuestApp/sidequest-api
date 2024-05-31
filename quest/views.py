@@ -113,7 +113,7 @@ class SetNodeStatus(generics.GenericAPIView):
         "IC" : "Incomplete"
     }
 
-    def get_queryset(self, node : QuestNode | None):
+    def get_queryset(self, node):
         uuid = self.request.query_params.get('node_uuid')
 
         return get_object_or_404(QuestNode, pk=uuid)
