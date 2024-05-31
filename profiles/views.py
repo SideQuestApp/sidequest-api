@@ -57,8 +57,7 @@ class OTPView(generics.CreateAPIView):
         email = request.query_params.get('email')
         users_with_email = self.get_queryset(email)
         user = OTPSerializer(users_with_email)
-        print(user.data)
-        # Twilio clien
+        # Twilio client
         client.verify.v2.services(os.environ['TWILIO_SERVICE_SID']).verifications.create(to='+1' + user.data['phone_number'], channel='sms')
 
         return HttpResponse('Send the OTP password')
@@ -68,6 +67,7 @@ class OTPView(generics.CreateAPIView):
         code = request.query_params.get('code')
         phone_number = request.query_params.get('phone')
         email = request.query_params.get('email')
+        user = self.get_queryset(email)
 
         verification_check = client.verify \
             .v2 \
@@ -75,7 +75,6 @@ class OTPView(generics.CreateAPIView):
             .verification_checks \
             .create(to='+1' + phone_number, code=code)
 
-        user = User.objects.get(email=email)
         temp_token = VerifyUserEmail.objects.get(user=user)
         temp_token.activate_token()
 
@@ -95,6 +94,9 @@ class ResetPasswordView(generics.GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = ResetPasswordSerializer
 
+    def get_queryset(self, email):
+        return get_object_or_404(User, email=email)
+
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         token = request.data.get('token')
@@ -103,10 +105,7 @@ class ResetPasswordView(generics.GenericAPIView):
         if not email or not token:
             return Response({'error': 'Email and token are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({'error': 'Invalid email'}, status=status.HTTP_404_NOT_FOUND)
+        user = self.get_queryset(email)
 
         try:
             temp_token = VerifyUserEmail.objects.get(user=user)

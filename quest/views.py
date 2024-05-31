@@ -10,6 +10,10 @@ from django.shortcuts import get_object_or_404
 
 
 class GetQuestTree(generics.ListCreateAPIView):
+    """
+    * Gets the Quest Tree.
+    * You are able to query using any of the Quest Tree field.
+    """
     permission_classes = (AllowAny, )
     queryset = QuestTree.objects.all()
     serializer_class = QuestTreeSerializer
@@ -18,8 +22,16 @@ class GetQuestTree(generics.ListCreateAPIView):
         uuid = self.request.query_params.get('quest_uuid')
         if uuid:
             return get_object_or_404(QuestTree, pk=uuid)
+
+        filter_kwargs = {}
+        for key, value in self.request.query_params.items():
+            if hasattr(QuestTree, key):
+                filter_kwargs[key] = value
+
+        if filter_kwargs:
+            return QuestTree.objects.filter(**filter_kwargs)
         else:
-            return
+            return QuestTree.objects.all()
 
     def list(self, request, *args, **kwargs):
 
@@ -32,6 +44,10 @@ class GetQuestTree(generics.ListCreateAPIView):
 
 
 class GetFirstQuestNode(generics.ListCreateAPIView):
+    """
+    * Gets the first QuestNode of a given QuestTree
+    * Quury using the QuestTree pk
+    """
     permission_classes = (AllowAny, )
     queryset = QuestNode.objects.all()
     serializer_class = QuestTreeSerializer
@@ -48,6 +64,10 @@ class GetFirstQuestNode(generics.ListCreateAPIView):
 
 
 class GetNextAvailableNodes(generics.ListCreateAPIView):
+    """
+    * Gets the next QuestNodes of a given QuestNode
+    * Query using the QuestNode pk
+    """
     permission_classes = (AllowAny, )
     queryset = QuestNode.objects.all()
     serializer_class = QuestNodeSerializer
@@ -68,9 +88,24 @@ class GetNextAvailableNodes(generics.ListCreateAPIView):
 
 
 class SetNodeStatus(generics.GenericAPIView):
+    """
+    * Sets the activity status of a QuestNode
+    * Query using the QuestNode pk
+    * Status must be one of possible statuses:
+
+        "NS" : "NotStarted",
+
+        "IP" : "In Progress",
+
+        "F" : "Finished",
+
+        "IC" : "Incomplete"
+    """
+
     permission_classes = (AllowAny, )
     queryset = QuestNode.objects.all()
     serializer_class = QuestNodeSerializer
+
     status_codes = {
         "NS" : "NotStarted",
         "IP" : "In Progress",
@@ -78,7 +113,7 @@ class SetNodeStatus(generics.GenericAPIView):
         "IC" : "Incomplete"
     }
 
-    def get_queryset(self):
+    def get_queryset(self, node : QuestNode | None):
         uuid = self.request.query_params.get('node_uuid')
 
         return get_object_or_404(QuestNode, pk=uuid)
@@ -95,6 +130,20 @@ class SetNodeStatus(generics.GenericAPIView):
 
 
 class SetQuestTreeStatus(generics.GenericAPIView):
+    """
+    * Sets the activity status of a QuestTree
+    * Query using the QuestTree pk
+    * Status must be one of possible statuses:
+
+        "NS" : "NotStarted",
+
+        "IP" : "In Progress",
+
+        "F" : "Finished",
+
+        "IC" : "Incomplete"
+    """
+
     permission_classes = (AllowAny, )
     queryset = QuestTree.objects.all()
     serializer_class = QuestTreeSerializer
@@ -122,6 +171,8 @@ class SetQuestTreeStatus(generics.GenericAPIView):
 
 class CreateQuest(generics.GenericAPIView):
     """
+    * Creates the QuestTree and all of its QuestNodes
+    * The Quest will be created using LLMs
     """
     # TODO Optimize this better
     permission_classes = (AllowAny, )
@@ -129,6 +180,9 @@ class CreateQuest(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         body_unicode = request.body.decode('utf-8')
+        # TODO Replace body quest data with calls to AI API
+        # TODO Include Would you rather questions in the body of the call
+        # TODO Longterm Goal is to include location and call different documents for RAG depending on it
         body = json.loads(body_unicode)
 
         quest_tree = QuestTree.objects.create(
