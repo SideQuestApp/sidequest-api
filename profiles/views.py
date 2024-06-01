@@ -1,9 +1,10 @@
 import os
+import json
 from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
-from .models import User, VerifyUserEmail
-from .serializers import UserRegistrationSerializer, OTPSerializer, ResetPasswordSerializer
+from .models import User, VerifyUserEmail, WouldYouRatherQA
+from .serializers import UserRegistrationSerializer, OTPSerializer, ResetPasswordSerializer, WouldYouRatherQASerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse, JsonResponse
 from twilio.rest import Client
@@ -57,8 +58,7 @@ class OTPView(generics.CreateAPIView):
         email = request.query_params.get('email')
         users_with_email = self.get_queryset(email)
         user = OTPSerializer(users_with_email)
-        print(user.data)
-        # Twilio clien
+        # Twilio client
         client.verify.v2.services(os.environ['TWILIO_SERVICE_SID']).verifications.create(to='+1' + user.data['phone_number'], channel='sms')
 
         return HttpResponse('Send the OTP password')
@@ -68,6 +68,7 @@ class OTPView(generics.CreateAPIView):
         code = request.query_params.get('code')
         phone_number = request.query_params.get('phone')
         email = request.query_params.get('email')
+        user = self.get_queryset(email)
 
         verification_check = client.verify \
             .v2 \
@@ -75,7 +76,6 @@ class OTPView(generics.CreateAPIView):
             .verification_checks \
             .create(to='+1' + phone_number, code=code)
 
-        user = User.objects.get(email=email)
         temp_token = VerifyUserEmail.objects.get(user=user)
         temp_token.activate_token()
 
@@ -95,6 +95,9 @@ class ResetPasswordView(generics.GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = ResetPasswordSerializer
 
+    def get_queryset(self, email):
+        return get_object_or_404(User, email=email)
+
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         token = request.data.get('token')
@@ -103,10 +106,7 @@ class ResetPasswordView(generics.GenericAPIView):
         if not email or not token:
             return Response({'error': 'Email and token are required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({'error': 'Invalid email'}, status=status.HTTP_404_NOT_FOUND)
+        user = self.get_queryset(email)
 
         try:
             temp_token = VerifyUserEmail.objects.get(user=user)
@@ -125,3 +125,78 @@ class ResetPasswordView(generics.GenericAPIView):
         temp_token.deactivate_token()
 
         return Response({'success': 'Password reset successfully'}, status=status.HTTP_200_OK)
+
+
+class CreateWouldYouRatherQA(generics.GenericAPIView):
+    # ! The url for this view is inside quest urls
+    """
+    """
+
+    permission_classes = (AllowAny, )
+    queryset = WouldYouRatherQA.objects.all()
+    serializer_class = WouldYouRatherQASerializer
+
+    def get_queryset(self, user_pk):
+        return get_object_or_404(User, pk=user_pk)
+
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body['user_pk'])
+        qa = WouldYouRatherQA.objects.create(
+            question=body['question'],
+            choice_1=body['choice_1'],
+            choice_2=body['choice_2'],
+            user=user
+        )
+        serializer = WouldYouRatherQASerializer(qa, many=False)
+        return Response(serializer.data)
+
+
+class AnswerWouldYouRatherQA(generics.GenericAPIView):
+    # ! The url for this view is inside quest urls
+    """
+    """
+    permission_classes = (AllowAny, )
+    queryset = WouldYouRatherQA.objects.all()
+    serializer_class = WouldYouRatherQASerializer
+
+    def get_queryset(self):
+        return get_object_or_404(WouldYouRatherQA, pk=self.request.query_params.get('pk'))
+
+    def post(self, request, *args, **kwargs):
+
+        queryset = self.get_queryset()
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+
+        queryset.answer = body['answer']
+        queryset.save()
+        serializer = WouldYouRatherQASerializer(queryset, many=False)
+
+        return Response(serializer.data)
+
+
+class GetWouldYouRatherQA(generics.GenericAPIView):
+    # ! The url for this view is inside quest urls
+    """
+    """
+    permission_classes = (AllowAny, )
+    queryset = WouldYouRatherQA.objects.all()
+    serializer_class = WouldYouRatherQASerializer
+
+    def get_queryset(self, user_pk, qa_pk):
+        if user_pk:
+            return get_object_or_404(WouldYouRatherQA, user=user_pk)
+        elif qa_pk:
+            return get_object_or_404(WouldYouRatherQA, pk=qa_pk)
+        else:
+            return WouldYouRatherQA.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        qa_pk = request.query_params.get('qa_pk')
+        user_pk = request.query_params.get('user_pk')
+        queryset = self.get_queryset(user_pk, qa_pk)
+        # When the qa_pk is used always single for rest always many
+        serializer = WouldYouRatherQASerializer(queryset, many=False if qa_pk else True)
+        return Response(serializer.data)

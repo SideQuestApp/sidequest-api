@@ -6,7 +6,7 @@ from django.db import IntegrityError
 from django.core.validators import EmailValidator
 from django.contrib.auth.password_validation import validate_password
 from django.utils.timezone import now
-from .models import User, VerifyUserEmail
+from .models import User, VerifyUserEmail, WouldYouRatherQA
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -97,3 +97,18 @@ class ResetPasswordSerializer(serializers.Serializer):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({'error': 'Passwords do not match'})
         return attrs
+
+
+class WouldYouRatherQASerializer(serializers.ModelSerializer):
+    """
+    """
+    class Meta:
+        model = WouldYouRatherQA
+        fields = [
+            'pk',
+            'question',
+            'choice_1',
+            'choice_2',
+            'answer',
+            'user'
+        ]
