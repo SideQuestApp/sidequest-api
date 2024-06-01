@@ -128,3 +128,17 @@ class VerifyUserEmail(AbstractBaseModel):
         self.token = generate_unique_token(20)
         self.is_active = False
         self.save()
+
+
+class WouldYouRatherQA(AbstractBaseModel):
+    """
+    * Would you rather question used to question the user to tailor the quests.
+    """
+    question = models.CharField(max_length=500)
+    choice_1 = models.CharField(max_length=300)
+    choice_2 = models.CharField(max_length=300)
+    answer = models.CharField(max_length=300, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_questioned')
+
+    def __str__(self):
+        return f'{self.question} - {self.user}'
