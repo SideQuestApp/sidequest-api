@@ -4,7 +4,7 @@ import string
 from django.db import models
 from common.models import AbstractBaseModel
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from quest.models import QuestNode
+from quest.models import QuestNode, LangChainVars
 
 
 def generate_unique_token(len):
@@ -58,7 +58,8 @@ class User(AbstractBaseUser, PermissionsMixin, AbstractBaseModel):
     is_verified = models.BooleanField(default=False)
     current_quest_node = models.ForeignKey(QuestNode, on_delete=models.CASCADE,
                                            related_name='current_node', blank=True, null=True)
-
+    chain = models.ForeignKey(LangChainVars, on_delete=models.CASCADE,
+                              related_name='user_langchain_config', null=True, blank=True)
     objects = UserManager()
     USERNAME_FIELD = 'email'
 

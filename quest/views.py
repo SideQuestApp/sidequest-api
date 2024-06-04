@@ -1,12 +1,16 @@
 import json
+import ast
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .models import QuestTree, QuestNode
+from .models import QuestTree, QuestNode, QuestReviews
 from rest_framework.permissions import AllowAny
-from .serializers import QuestTreeSerializer, QuestNodeSerializer
+from .serializers import QuestTreeSerializer, QuestNodeSerializer, QuestReviewSerializer
+import profiles
 from django.shortcuts import get_object_or_404
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 
 class GetQuestTree(generics.ListCreateAPIView):
@@ -178,33 +182,49 @@ class CreateQuest(generics.GenericAPIView):
     permission_classes = (AllowAny, )
     queryset = QuestTree.objects.all()
 
+    def get_queryset(self, body):
+        return get_object_or_404(profiles.models.User, pk=body['user_pk'])
+
     def post(self, request, *args, **kwargs):
         body_unicode = request.body.decode('utf-8')
-        # TODO Replace body quest data with calls to AI API
         # TODO Include Would you rather questions in the body of the call
         # TODO Longterm Goal is to include location and call different documents for RAG depending on it
+
         body = json.loads(body_unicode)
+        user = self.get_queryset(body)
+        # Quest generation using langchain
+        model = ChatOpenAI(model=user.chain.model)
+        messages = [
+            SystemMessage(content=user.chain.system_prompt),
+            HumanMessage(content=body["location"]),
+        ]
+        response = model.invoke(messages)
+        response_json = ast.literal_eval(response.content)
 
         quest_tree = QuestTree.objects.create(
-            name=body['mainQuest']["title"],
-            description=body['mainQuest']["description"],
+            name=response_json['mainQuest']["title"],
+            description=response_json['mainQuest']["description"],
+            location=body["location"],
             status="NS",
             completion_exp=1000,
             price_low=100,
-            price_high=200
+            price_high=200,
+            chain=user.chain
         )
         uuid_map = {}
         # ! Remember to adjust for when values are dynamic
-        for quest in body["mainQuest"]["miniQuests"]:
+        for quest in response_json["mainQuest"]["miniQuests"]:
             quest_node = QuestNode.objects.create(
                 name=quest["title"],
                 description=quest["description"],
                 longitude=quest["longitude"],
                 latitude=quest["latitude"],
+                status='NS',
                 price_low=10,
                 price_high=25,
                 completion_experience=100,
-                quest=quest_tree
+                quest=quest_tree,
+                chain=user.chain
             )
             uuid_map[quest["uuid"]] = quest_node
             if quest["uuid"] == "2":
@@ -214,11 +234,68 @@ class CreateQuest(generics.GenericAPIView):
         quest_tree.last_node = quest_node
         quest_tree.save()
 
-        for sequence in body["questSequence"]:
+        for sequence in response_json["questSequence"]:
             current_node = uuid_map[sequence["prev"]]
             for next_node in sequence["next"]:
                 current_node.next.add(uuid_map[next_node])
                 current_node.save()
         return HttpResponse('Created a new quest without error')
 
-    # TODO Call quest generator, take input and make quest
+
+class ReviewQuest(generics.GenericAPIView):
+    """
+    * User reviews of quests
+    """
+    permission_classes = (AllowAny, )
+    queryset = QuestReviews.objects.all()
+    serializer_class = QuestReviewSerializer
+
+    def get_queryset(self, pk, model):
+        return get_object_or_404(model, pk=pk)
+
+    def post(self, request, *args, **kwargs):
+        # TODO: Create a function for loading in the body
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body['user_pk'], profiles.models.User)
+        quest = self.get_queryset(body['quest_pk'], QuestTree)
+        score = body['score']
+        review = QuestReviews.objects.create(
+            quest=quest,
+            user=user,
+            chain=user.chain,
+            score=score
+        )
+        serializer = QuestReviewSerializer(review, many=False)
+        return Response(serializer.data)
+
+
+class GetReviews(generics.ListCreateAPIView):
+    """"""
+    permission_classes = (AllowAny, )
+    queryset = QuestReviews.objects.all()
+    serializer_class = QuestReviewSerializer
+
+    def get_queryset(self):
+        uuid = self.request.query_params.get('review_uuid')
+        if uuid:
+            return get_object_or_404(QuestReviews, pk=uuid)
+
+        filter_kwargs = {}
+        for key, value in self.request.query_params.items():
+            if hasattr(QuestReviews, key):
+                filter_kwargs[key] = value
+
+        if filter_kwargs:
+            return QuestReviews.objects.filter(**filter_kwargs)
+        else:
+            return QuestReviews.objects.all()
+
+    def list(self, request, *args, **kwargs):
+
+        queryset = self.get_queryset()
+        serializer = QuestReviewSerializer(queryset if queryset else self.queryset.all(),
+                                           many=False if request.query_params.get('review_uuid')
+                                           else True)
+
+        return Response(serializer.data)
