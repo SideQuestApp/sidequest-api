@@ -13,5 +13,7 @@ urlpatterns = [
     path('quest_trees/get_quest_tree/', view=views.GetQuestTree.as_view(), name='get_quest'),
     path('wouldyourather/create/', view=views_profile.CreateWouldYouRatherQA.as_view(), name='create_qa'),
     path('wouldyourather/answer/', view=views_profile.AnswerWouldYouRatherQA.as_view(), name='answer_qa'),
-    path('wouldyourather/', view=views_profile.GetWouldYouRatherQA.as_view(), name='get_qa')
+    path('wouldyourather/', view=views_profile.GetWouldYouRatherQA.as_view(), name='get_qa'),
+    path('quest_trees/review/create', view=views.ReviewQuest.as_view(), name='review_quest'),
+    path('quest_trees/review/get', view=views.GetReviews.as_view(), name='get_quest_reviews')
 ]

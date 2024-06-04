@@ -1,4 +1,4 @@
-from .models import QuestTree, QuestNode
+from .models import QuestTree, QuestNode, QuestReviews
 from rest_framework import serializers
 
 
@@ -9,7 +9,9 @@ class QuestTreeSerializer(serializers.ModelSerializer):
         model = QuestTree
         fields = [
             'pk',
+            'location',
             'name',
+            'description',
             'status',
             'completion_exp',
             'price_low',
@@ -33,4 +35,18 @@ class QuestNodeSerializer(serializers.ModelSerializer):
             'price_high',
             'optional',
             'completion_experience'
+        ]
+
+
+class QuestReviewSerializer(serializers.ModelSerializer):
+    """
+    """
+    class Meta:
+        model = QuestReviews
+        fields = [
+            'pk',
+            'quest',
+            'chain',
+            'user',
+            'score'
         ]
