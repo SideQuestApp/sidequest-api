@@ -50,3 +50,20 @@ class QuestReviewSerializer(serializers.ModelSerializer):
             'user',
             'score'
         ]
+
+
+class LocationReviewSerializer(serializers.ModelSerializer):
+    """
+    """
+    class Meta:
+        model = LocationReviews
+        fields = [
+            'pk'
+            'quest'
+            'user'
+            'score'
+            'chain'
+            'latitude'
+            'longitude'
+            'location_name'
+        ]
