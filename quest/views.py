@@ -299,3 +299,68 @@ class GetReviews(generics.ListCreateAPIView):
                                            else True)
 
         return Response(serializer.data)
+
+
+class ReviewLocation(generics.GenericAPIView):
+    """
+    *User review of location
+    """
+    permission_classes=(AllowAny, )
+    queryset = LocationReviews.objects.all()
+    serializer_class = LocationReviewSerializer
+
+    def get_queryset(self, pk, model):
+        return get_object_or_404(model, pk=pk)
+    
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body['user_pk'], profiles.models.User)
+        quest = self.get_queryset(body['quest_pk'], QuestTree)
+        score = body['score']
+        review = LocationReviews.objects.create(
+            quest=quest,
+            user=user,
+            score=score,
+            chain=user.chain,
+            latitude=quest['latitude'],
+            longitude=quest['longitude'],
+        )
+        serializer = LocationReviewSerializer(review, many=False)
+        return Response(serializer.data)
+
+
+BUFFER_DISTANCE = 0.0009
+
+
+class GetLocationReviews(generics.ListAPIView):
+    """
+    *Get location reviews within a buffer distance
+    """
+
+    serializer_class = LocationReviewSerializer
+    permission_classes = (AllowAny, )
+    queryset = LocationReviews.objects.all()
+    def get_queryset(self):
+
+        latitude = float(self.request.query_params.get('latitude'))
+        longitude = float(self.request.query_params.get('longitude'))
+
+        # Query reviews within the buffer range
+
+        return LocationReviews.objects.filter(
+            Q(latitude__gte=latitude - BUFFER_DISTANCE)
+            & Q(latitude__lte=latitude + BUFFER_DISTANCE)
+            & Q(longitude__gte=longitude - BUFFER_DISTANCE)
+            & Q(longitude__lte=longitude + BUFFER_DISTANCE)
+        )
+
+ 
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if queryset.exists():
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            return Response({"message": "No reviews found for the given coordinates."}, status=status.HTTP_404_NOT_FOUND)
