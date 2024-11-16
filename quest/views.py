@@ -4,13 +4,14 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .models import QuestTree, QuestNode, QuestReviews
+from .models import QuestTree, QuestNode, QuestReviews, LocationReviews
 from rest_framework.permissions import AllowAny
-from .serializers import QuestTreeSerializer, QuestNodeSerializer, QuestReviewSerializer
+from .serializers import QuestTreeSerializer, QuestNodeSerializer, QuestReviewSerializer, LocationReviewSerializer
 import profiles
 from django.shortcuts import get_object_or_404
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from django.db.models import Q
 
 
 class GetQuestTree(generics.ListCreateAPIView):
@@ -270,7 +271,7 @@ class ReviewQuest(generics.GenericAPIView):
         return Response(serializer.data)
 
 
-class GetReviews(generics.ListCreateAPIView):
+class GetQuestReviews(generics.ListCreateAPIView):
     """"""
     permission_classes = (AllowAny, )
     queryset = QuestReviews.objects.all()
@@ -305,13 +306,14 @@ class ReviewLocation(generics.GenericAPIView):
     """
     *User review of location
     """
-    permission_classes=(AllowAny, )
+
+    permission_classes = (AllowAny, )
     queryset = LocationReviews.objects.all()
     serializer_class = LocationReviewSerializer
 
     def get_queryset(self, pk, model):
         return get_object_or_404(model, pk=pk)
-    
+
     def post(self, request, *args, **kwargs):
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
@@ -341,6 +343,7 @@ class GetLocationReviews(generics.ListAPIView):
     serializer_class = LocationReviewSerializer
     permission_classes = (AllowAny, )
     queryset = LocationReviews.objects.all()
+
     def get_queryset(self):
 
         latitude = float(self.request.query_params.get('latitude'))
@@ -354,8 +357,6 @@ class GetLocationReviews(generics.ListAPIView):
             & Q(longitude__gte=longitude - BUFFER_DISTANCE)
             & Q(longitude__lte=longitude + BUFFER_DISTANCE)
         )
-
- 
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
