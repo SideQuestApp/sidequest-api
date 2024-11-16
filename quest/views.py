@@ -271,7 +271,7 @@ class ReviewQuest(generics.GenericAPIView):
         return Response(serializer.data)
 
 
-class GetQuestReviews(generics.ListCreateAPIView):
+class GetReviews(generics.ListCreateAPIView):
     """"""
     permission_classes = (AllowAny, )
     queryset = QuestReviews.objects.all()
