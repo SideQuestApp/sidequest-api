@@ -1,4 +1,4 @@
-from .models import QuestTree, QuestNode, QuestReviews
+from .models import QuestTree, QuestNode, QuestReviews, LocationReviews
 from rest_framework import serializers
 
 
