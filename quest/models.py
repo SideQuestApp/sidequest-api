@@ -76,3 +76,18 @@ class QuestReviews(AbstractBaseModel):
 
     def __str__(self):
         return f'{self.user}-{self.quest}-{self.score}'
+
+
+class LocationReviews(AbstractBaseModel):
+    """
+    * Location Reviews. This table is used to guage the popularity of locations for the
+    * quests to decide what locations to use.
+    """
+
+    quest = models.ForeignKey(QuestTree, on_delete=models.CASCADE, related_name='related_quest')
+    user = models.ForeignKey("profiles.User", on_delete=models.CASCADE, related_name='user_reviewing_location')
+    score = models.IntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    chain = models.ForeignKey(LangChainVars, on_delete=models.CASCADE, related_name='langchain_config_location')
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    location_name = models.CharField(max_length=200)

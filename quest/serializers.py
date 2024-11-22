@@ -1,4 +1,4 @@
-from .models import QuestTree, QuestNode, QuestReviews
+from .models import QuestTree, QuestNode, QuestReviews, LocationReviews
 from rest_framework import serializers
 
 
@@ -49,4 +49,21 @@ class QuestReviewSerializer(serializers.ModelSerializer):
             'chain',
             'user',
             'score'
+        ]
+
+
+class LocationReviewSerializer(serializers.ModelSerializer):
+    """
+    """
+    class Meta:
+        model = LocationReviews
+        fields = [
+            'pk'
+            'quest'
+            'user'
+            'score'
+            'chain'
+            'latitude'
+            'longitude'
+            'location_name'
         ]
