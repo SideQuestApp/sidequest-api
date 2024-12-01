@@ -193,7 +193,9 @@ class CreateQuest(generics.GenericAPIView):
 
         body = json.loads(body_unicode)
         user = self.get_queryset(body)
+        print("CREATING QUEST")
         # Quest generation using langchain
+        # !Need a func to asing a default chain to user
         model = ChatOpenAI(model=user.chain.model)
         messages = [
             SystemMessage(content=user.chain.system_prompt),
@@ -228,6 +230,8 @@ class CreateQuest(generics.GenericAPIView):
                 chain=user.chain
             )
             uuid_map[quest["uuid"]] = quest_node
+            # this check for first quest node
+            # as model returns uuid 1 for quest tree
             if quest["uuid"] == "2":
                 quest_tree.first_node = quest_node
                 quest_tree.save()
@@ -240,7 +244,19 @@ class CreateQuest(generics.GenericAPIView):
             for next_node in sequence["next"]:
                 current_node.next.add(uuid_map[next_node])
                 current_node.save()
+        # !set the current quest of the user to be the
+        # !created quest
         return HttpResponse('Created a new quest without error')
+
+# TODO: Create functionality for this API request
+
+
+class CreateQuestNode(generics.GenericAPIView):
+    pass  # TODO
+
+
+class UpdateQuestTree(generics.GenericAPIView):
+    pass  # TODO
 
 
 class ReviewQuest(generics.GenericAPIView):
