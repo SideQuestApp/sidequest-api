@@ -16,6 +16,7 @@ class QuestTreeSerializer(serializers.ModelSerializer):
             'completion_exp',
             'price_low',
             'price_high'
+            'length'
         ]
 
 

@@ -176,7 +176,7 @@ class SetQuestTreeStatus(generics.GenericAPIView):
 
 class CreateQuest(generics.GenericAPIView):
     """
-    * Creates the QuestTree and all of its QuestNodes
+    * Creates the QuestTree and its start and end node
     * The Quest will be created using LLMs
     """
     # TODO Optimize this better
@@ -193,7 +193,7 @@ class CreateQuest(generics.GenericAPIView):
 
         body = json.loads(body_unicode)
         user = self.get_queryset(body)
-        print("CREATING QUEST")
+
         # Quest generation using langchain
         # !Need a func to asing a default chain to user
         model = ChatOpenAI(model=user.chain.model)
@@ -251,8 +251,121 @@ class CreateQuest(generics.GenericAPIView):
 # TODO: Create functionality for this API request
 
 
+class CreateQuest2(generics.GenericAPIView):
+    """
+    * Creates a questree with a start and end node
+    * Quest is created using LangChain request
+    """
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+
+    def get_queryset(self, body):
+        return get_object_or_404(profiles.models.User, pk=body['user_pk'])
+
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        # TODO Include Would you rather questions in the body of the call
+        # TODO Longterm Goal is to include location and call different documents for RAG depending on it
+
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body)
+
+        # Quest generation using langchain
+        # !Need a func to asing a default chain to user
+        model = ChatOpenAI(model=user.chain.model)
+        messages = [
+            SystemMessage(content=user.chain.system_prompt),
+            HumanMessage(content=body["location"]),
+        ]
+        response = model.invoke(messages)
+        response_json = ast.literal_eval(response.content)
+
+        quest_tree = QuestTree.objects.create(
+            name=response_json['mainQuest']["title"],
+            description=response_json['mainQuest']["description"],
+            location=body["location"],
+            status="NS",
+            completion_exp=1000,
+            price_low=100,
+            price_high=200,
+            chain=user.chain,
+            length=response_json['mainQuest']["length"]
+        )
+        uuid_map = {}
+        # ! Remember to adjust for when values are dynamic
+
+        starting_quest = response_json['mainQuest']["startQuest"]
+
+        starting_node = QuestNode.objects.create(
+            name=starting_quest["title"],
+            description=starting_quest["description"],
+            longitude=starting_quest["longitude"],
+            latitude=starting_quest["latitude"],
+            status='IP',
+            price_low=10,
+            price_high=25,
+            completion_experience=100,
+            quest=quest_tree,
+            chain=user.chain
+        )
+        quest_tree.first_node = starting_node
+        uuid_map[2] = starting_node
+        quest_tree.save()
+
+        ending_quest = response_json['mainQuest']["endQuest"]
+
+        ending_node = QuestNode.objects.create(
+            name=ending_quest["title"],
+            description=ending_quest["description"],
+            longitude=ending_quest["longitude"],
+            latitude=ending_quest["latitude"],
+            status='NS',
+            price_low=10,
+            price_high=25,
+            completion_experience=100,
+            quest=quest_tree,
+            chain=user.chain
+        )
+        quest_tree.last_node = ending_node
+        uuid_map[quest_tree.length + 1] = ending_node
+        quest_tree.save()
+
+        # TODO: add sequence to the quest tree starting creation
+
+        return HttpResponse('Created a new quest without error')
+
+
 class CreateQuestNode(generics.GenericAPIView):
-    pass  # TODO
+    """
+    * Creates a QuestNode
+    * Query using the QuestTree pk
+    """
+    permission_classes = (AllowAny, )
+    queryset = QuestNode.objects.all()
+
+    def get_queryset(self, body):
+        return get_object_or_404(QuestTree, pk=body['quest_pk'])
+
+    def post(self, request, *args, **kwargs):
+        # body_unicode = request.body.decode('utf-8')
+        # body = json.loads(body_unicode)
+        # quest = self.get_queryset(body)
+        """
+        node = QuestNode.objects.create(
+            name=body['name'],
+            description=body['description'],
+            longitude=body['longitude'],
+            latitude=body['latitude'],
+            status=body['status'],
+            price_low=body['price_low'],
+            price_high=body['price_high'],
+            optional=body['optional'],
+            completion_experience=body['completion_experience'],
+            quest=quest,
+            chain=quest.chain
+        )
+        """
+        return Response('Created next quest node')
 
 
 class UpdateQuestTree(generics.GenericAPIView):

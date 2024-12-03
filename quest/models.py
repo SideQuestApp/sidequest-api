@@ -58,6 +58,7 @@ class QuestTree(AbstractBaseModel):
     price_high = models.IntegerField()
     # Chain is the foreign key for which LangChain configuration was used to create this
     chain = models.ForeignKey(LangChainVars, on_delete=models.CASCADE, related_name='tree_langchain_config', blank=True, null=True)
+    length = models.IntegerField(default=2)
 
     def __str__(self):
         return self.name
