@@ -173,7 +173,7 @@ class SetQuestTreeStatus(generics.GenericAPIView):
         return Response(serializer.data)
 
 
-class CreateQuest2(generics.GenericAPIView):
+class CreateQuest(generics.GenericAPIView):
     """
     * Creates a questree with a start and end node
     * Quest is created using LangChain request
