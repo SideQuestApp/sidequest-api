@@ -176,10 +176,9 @@ class SetQuestTreeStatus(generics.GenericAPIView):
 
 class CreateQuest(generics.GenericAPIView):
     """
-    * Creates the QuestTree and all of its QuestNodes
-    * The Quest will be created using LLMs
+    * Creates a questree with a start and end node
+    * Quest is created using LangChain request
     """
-    # TODO Optimize this better
     permission_classes = (AllowAny, )
     queryset = QuestTree.objects.all()
 
@@ -190,16 +189,15 @@ class CreateQuest(generics.GenericAPIView):
         body_unicode = request.body.decode('utf-8')
         # TODO Include Would you rather questions in the body of the call
         # TODO Longterm Goal is to include location and call different documents for RAG depending on it
-
+        # body['qas'] is the would you rather questions and answers
         body = json.loads(body_unicode)
         user = self.get_queryset(body)
-        print("CREATING QUEST")
         # Quest generation using langchain
         # !Need a func to asing a default chain to user
         model = ChatOpenAI(model=user.chain.model)
         messages = [
             SystemMessage(content=user.chain.system_prompt),
-            HumanMessage(content=body["location"]),
+            HumanMessage(content=body["location"] + str(body['qas'])),
         ]
         response = model.invoke(messages)
         response_json = ast.literal_eval(response.content)
@@ -212,41 +210,106 @@ class CreateQuest(generics.GenericAPIView):
             completion_exp=1000,
             price_low=100,
             price_high=200,
-            chain=user.chain
+            chain=user.chain,
+            length=response_json['mainQuest']["length"]
         )
         uuid_map = {}
         # ! Remember to adjust for when values are dynamic
-        for quest in response_json["mainQuest"]["miniQuests"]:
-            quest_node = QuestNode.objects.create(
-                name=quest["title"],
-                description=quest["description"],
-                longitude=quest["longitude"],
-                latitude=quest["latitude"],
+
+        starting_quest = response_json['mainQuest']["startQuest"]
+
+        starting_node = QuestNode.objects.create(
+            name=starting_quest["title"],
+            description=starting_quest["description"],
+            longitude=starting_quest["longitude"],
+            latitude=starting_quest["latitude"],
+            status='IP',
+            price_low=10,
+            price_high=25,
+            completion_experience=100,
+            quest=quest_tree,
+            chain=user.chain
+        )
+        quest_tree.first_node = starting_node
+        uuid_map[2] = starting_node
+        quest_tree.save()
+
+        ending_quest = response_json['mainQuest']["endQuest"]
+
+        ending_node = QuestNode.objects.create(
+            name=ending_quest["title"],
+            description=ending_quest["description"],
+            longitude=ending_quest["longitude"],
+            latitude=ending_quest["latitude"],
+            status='NS',
+            price_low=10,
+            price_high=25,
+            completion_experience=100,
+            quest=quest_tree,
+            chain=user.chain
+        )
+        quest_tree.last_node = ending_node
+        uuid_map[quest_tree.length + 1] = ending_node
+        quest_tree.save()
+
+        # TODO: add sequence to the quest tree starting creation
+
+        return HttpResponse('Created a new quest without error')
+
+
+class CreateQuestNode(generics.GenericAPIView):
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+
+    def get_queryset(self, user_pk, quest_pk):
+        if user_pk:
+            return get_object_or_404(profiles.models.User, pk=user_pk)
+        elif quest_pk:
+            return get_object_or_404(QuestNode, pk=quest_pk)
+
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body['user_pk'], None)
+        current_quest_node = self.get_queryset(None, body['quest_pk'])
+        last_quest_node = current_quest_node.quest.last_node
+        with open('el_locations.json', mode='r') as file_:
+            locations = file_.readlines()
+            locations = ''.join(locations)
+
+        model = ChatOpenAI(model=user.chain.model)
+        messages = [
+            SystemMessage(content=user.chain.system_prompt),
+            HumanMessage(content=locations + '\n' + "Would you rather QA" +
+                         str(body['qa']) + '\n' + "CURRENT QUEST NODE"
+                         + str(current_quest_node)
+                         + "LAST QUEST NODE:" + str(last_quest_node)),
+        ]
+        response = model.invoke(messages)
+
+        new_quest_node_dict = ast.literal_eval(response.content)
+        quests_ = []
+        for mini_quest in new_quest_node_dict['mainQuest']['miniQuests']:
+            new_quest_node = QuestNode.objects.create(
+                name=mini_quest["title"],
+                description=mini_quest["description"],
+                longitude=mini_quest["longitude"],
+                latitude=mini_quest["latitude"],
                 status='NS',
                 price_low=10,
                 price_high=25,
                 completion_experience=100,
-                quest=quest_tree,
+                quest=current_quest_node.quest,
                 chain=user.chain
             )
-            uuid_map[quest["uuid"]] = quest_node
-            # this check for first quest node
-            # as model returns uuid 1 for quest tree
-            if quest["uuid"] == "2":
-                quest_tree.first_node = quest_node
-                quest_tree.save()
 
-        quest_tree.last_node = quest_node
-        quest_tree.save()
+            current_quest_node.next.add(new_quest_node)
+            current_quest_node.save()
+            quests_.append(new_quest_node)
+        response = QuestNodeSerializer(quests_, many=True)
 
-        for sequence in response_json["questSequence"]:
-            current_node = uuid_map[sequence["prev"]]
-            for next_node in sequence["next"]:
-                current_node.next.add(uuid_map[next_node])
-                current_node.save()
-        # !set the current quest of the user to be the
-        # !created quest
-        return HttpResponse('Created a new quest without error')
+        return Response(response.data)
+
 
 # TODO: Create functionality for this API request
 

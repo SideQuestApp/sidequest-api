@@ -151,3 +151,14 @@ django_heroku.settings(locals())
 
 # Test OAuth, will use Django Admin login page for now
 LOGIN_URL = '/admin/login/'
+
+STATIC_URL = '/static/'
+
+# this is directory name where collectstatic files command will put your app level static files
+STATIC_ROOT = 'staticfiles'
+
+# this is directory paths where you have to put your project level static files
+# you can put multiple folders here
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, "static"),
+)

@@ -10,6 +10,7 @@ urlpatterns = [
     path('quest_trees/node_status_change/', view=views.SetNodeStatus.as_view(), name='change_node_status'),
     path('quest_trees/tree_status_change/', view=views.SetQuestTreeStatus.as_view(), name='change_tree_status'),
     path('quest_trees/create_quest/', view=views.CreateQuest.as_view(), name='create_quest'),
+    path('quest_trees/create_quest_node/', views.CreateQuestNode.as_view(), name='create_quest_node'),
     path('quest_trees/get_quest_tree/', view=views.GetQuestTree.as_view(), name='get_quest'),
     path('wouldyourather/create/', view=views_profile.CreateWouldYouRatherQA.as_view(), name='create_qa'),
     path('wouldyourather/answer/', view=views_profile.AnswerWouldYouRatherQA.as_view(), name='answer_qa'),

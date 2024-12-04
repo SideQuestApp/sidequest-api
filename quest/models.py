@@ -4,7 +4,8 @@ from common.models import AbstractBaseModel
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 status = (("NS" , "Not Started"), ("IP" , "In Progress"), ("F" , "Finished"), ("IC" , "Incomplete"))
-langchain_models = (("gpt-4", "gpt-4"), ("gpt-4-turbo", "gpt-4-turbo"), ("claude-3-sonnet-20240229", "claude-3"), ("gemini-pro", "gemini-pro"))
+langchain_models = (("gpt-4o", "gpt-4o"), ("gpt-4-turbo", "gpt-4-turbo"), ("claude-3-sonnet-20240229", "claude-3"), ("gemini-pro", "gemini-pro"),
+                    ("gpt-4o-mini", "gpt-4o-mini"))
 
 
 class LangChainVars(AbstractBaseModel):
