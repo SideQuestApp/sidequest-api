@@ -214,8 +214,6 @@ class CreateQuest2(generics.GenericAPIView):
             chain=user.chain,
             length=response_json['mainQuest']["length"]
         )
-        uuid_map = {}
-        # ! Remember to adjust for when values are dynamic
 
         starting_quest = response_json['mainQuest']["startQuest"]
 
@@ -232,7 +230,6 @@ class CreateQuest2(generics.GenericAPIView):
             chain=user.chain
         )
         quest_tree.first_node = starting_node
-        uuid_map[2] = starting_node
         quest_tree.save()
 
         ending_quest = response_json['mainQuest']["endQuest"]
@@ -250,7 +247,6 @@ class CreateQuest2(generics.GenericAPIView):
             chain=user.chain
         )
         quest_tree.last_node = ending_node
-        uuid_map[quest_tree.length + 1] = ending_node
         quest_tree.save()
 
         # TODO: add sequence to the quest tree starting creation
@@ -261,7 +257,6 @@ class CreateQuest2(generics.GenericAPIView):
 class CreateQuestNode(generics.GenericAPIView):
     """
     * Creates a QuestNode
-    * Query using the QuestTree pk
     """
     permission_classes = (AllowAny, )
     queryset = QuestNode.objects.all()
@@ -270,29 +265,53 @@ class CreateQuestNode(generics.GenericAPIView):
         return get_object_or_404(QuestTree, pk=body['quest_pk'])
 
     def post(self, request, *args, **kwargs):
-        # body_unicode = request.body.decode('utf-8')
-        # body = json.loads(body_unicode)
-        # quest = self.get_queryset(body)
-        """
-        node = QuestNode.objects.create(
-            name=body['name'],
-            description=body['description'],
-            longitude=body['longitude'],
-            latitude=body['latitude'],
-            status=body['status'],
-            price_low=body['price_low'],
-            price_high=body['price_high'],
-            optional=body['optional'],
-            completion_experience=body['completion_experience'],
-            quest=quest,
-            chain=quest.chain
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body)
+
+        # find a way to invoke the would you rather questions here before creating a quest node
+
+        model = ChatOpenAI(model=user.chain.model)
+        messages = [
+            SystemMessage(content=user.chain.system_prompt),
+            HumanMessage(content=body["location"]),
+        ]
+        response = model.invoke(messages)
+        response_json = ast.literal_eval(response.content)
+
+        quest_node = QuestNode.objects.create(
+            name=response_json["title"],
+            description=response_json["description"],
+            longitude=response_json["longitude"],
+            latitude=response_json["latitude"],
+            status='NS',
+            price_low=10,
+            price_high=25,
+            completion_experience=100,
+            quest=response_json["quest"],
+            chain=user.chain
         )
-        """
-        return Response('Created next quest node')
+
+        return Response(quest_node)
 
 
 class UpdateQuestTree(generics.GenericAPIView):
-    pass  # TODO
+    """
+    * Updates a QuestTree with its newly created questnode
+    * Assigns values to that node and tree
+    """
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+
+    def get_queryset(self, body):
+        return get_object_or_404(profiles.models.User, pk=body['user_pk'])
+
+    def post(self, request, *args, **kwargs):
+        # body_unicode = request.body.decode('utf-8')
+        # body = json.loads(body_unicode)
+        # user = self.get_queryset(body)
+
+        return HttpResponse('Updated the quest tree')
 
 
 class ReviewQuest(generics.GenericAPIView):
