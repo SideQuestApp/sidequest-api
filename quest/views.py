@@ -188,7 +188,7 @@ class CreateQuest(generics.GenericAPIView):
         body_unicode = request.body.decode('utf-8')
         # TODO Include Would you rather questions in the body of the call
         # TODO Longterm Goal is to include location and call different documents for RAG depending on it
-
+        # body['qas'] is the would you rather questions and answers
         body = json.loads(body_unicode)
         user = self.get_queryset(body)
 
@@ -197,7 +197,7 @@ class CreateQuest(generics.GenericAPIView):
         model = ChatOpenAI(model=user.chain.model)
         messages = [
             SystemMessage(content=user.chain.system_prompt),
-            HumanMessage(content=body["location"]),
+            HumanMessage(content=body["location"] + str(body['qas'])),
         ]
         response = model.invoke(messages)
         response_json = ast.literal_eval(response.content)
@@ -255,6 +255,59 @@ class CreateQuest(generics.GenericAPIView):
         # TODO: add sequence to the quest tree starting creation
 
         return HttpResponse('Created a new quest without error')
+
+
+class CreateQuestNode(generics.GenericAPIView):
+    permission_classes = (AllowAny, )
+    queryset = QuestTree.objects.all()
+
+    def get_queryset(self, user_pk, quest_pk):
+        if user_pk:
+            return get_object_or_404(profiles.models.User, pk=user_pk)
+        elif quest_pk:
+            return get_object_or_404(QuestNode, pk=quest_pk)
+
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body['user_pk'], None)
+        current_quest_node = self.get_queryset(None, body['quest_pk'])
+        last_quest_node = current_quest_node.quest.last_node
+        with open('el_locations.json', mode='r') as file_:
+            locations = file_.readlines()
+            locations = ''.join(locations)
+
+        model = ChatOpenAI(model=user.chain.model)
+        messages = [
+            SystemMessage(content=user.chain.system_prompt),
+            HumanMessage(content=locations + '\n' + "Would you rather QA" +
+                         str(body['qa']) + '\n' + "CURRENT QUEST NODE"
+                         + str(current_quest_node)
+                         + "LAST QUEST NODE:" + str(last_quest_node)),
+        ]
+        response = model.invoke(messages)
+
+        new_quest_node_dict = ast.literal_eval(response.content)
+        quests_ = []
+        for mini_quest in new_quest_node_dict['mainQuest']['miniQuests']:
+            new_quest_node = QuestNode.objects.create(
+                name=mini_quest["title"],
+                description=mini_quest["description"],
+                longitude=mini_quest["longitude"],
+                latitude=mini_quest["latitude"],
+                status='NS',
+                price_low=10,
+                price_high=25,
+                completion_experience=100,
+                quest=current_quest_node.quest,
+                chain=user.chain
+            )
+            current_quest_node.next.add(new_quest_node)
+            current_quest_node.save()
+            quests_.append(new_quest_node)
+        response = QuestNodeSerializer(quests_, many=True)
+
+        return Response(response.data)
 
 
 class ReviewQuest(generics.GenericAPIView):

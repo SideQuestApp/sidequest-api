@@ -4,13 +4,15 @@ from rest_framework.response import Response
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
 from .models import User, VerifyUserEmail, WouldYouRatherQA
+from quest.models import QuestNode
 from .serializers import UserRegistrationSerializer, OTPSerializer, ResetPasswordSerializer, WouldYouRatherQASerializer
 from oauth2_provider.views.generic import ProtectedResourceView
 from django.http import HttpResponse, JsonResponse
 from twilio.rest import Client
 from .permissions import VerifiedUsersAccessOnly, PremiumUsersAccessOnly
 from django.shortcuts import get_object_or_404
-
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 client = Client(os.environ['TWILIO_ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
 
@@ -136,20 +138,76 @@ class CreateWouldYouRatherQA(generics.GenericAPIView):
     queryset = WouldYouRatherQA.objects.all()
     serializer_class = WouldYouRatherQASerializer
 
-    def get_queryset(self, user_pk):
-        return get_object_or_404(User, pk=user_pk)
+    def get_queryset(self, user_pk, quest_pk):
+        if user_pk:
+            return get_object_or_404(User, pk=user_pk)
+        else:
+            return get_object_or_404(QuestNode,
+                                     pk=quest_pk)
 
     def post(self, request, *args, **kwargs):
         body_unicode = request.body.decode('utf-8')
         body = json.loads(body_unicode)
-        user = self.get_queryset(body['user_pk'])
-        qa = WouldYouRatherQA.objects.create(
-            question=body['question'],
-            choice_1=body['choice_1'],
-            choice_2=body['choice_2'],
-            user=user
-        )
-        serializer = WouldYouRatherQASerializer(qa, many=False)
+        user = self.get_queryset(body['user_pk'], None)
+        initial = body['initial']
+        previous_quest = None
+        if initial is False:
+            previous_quest = self.get_queryset(None, body['quest_pk'])
+
+        model = ChatOpenAI(model=user.chain.model)
+
+        with open('el_locations.json', mode='r') as file_:
+            locations = file_.readlines()
+            locations = ''.join(locations)
+        messages = [
+            SystemMessage(content=f"You are a travel assistant. Your job is to create  would you\
+                          rather questions that will help determin other agent what activities\
+                           should be given to the user in order to have a great time. Your questions\
+                           have two possible answers. An example response would be:\
+                          Would you rather look at trees or explore history?;Look at trees;Explore history\
+                          The use of ; is to easily later delimit your responses. Make sure you include them.\
+                          For your input you will be given the previous activity as well as a list of\
+                           potential activities in the area. If you are not given a previous activity that means\
+                          it is their first quest.\
+                          Your questions should be tailored towards\
+                           possible activities. Create {10 if initial else 1} question{'s' if initial else ''}.\
+                            In case where you are creating 10 question choices pairs at the end put a newline.\
+                                This way I can split all the questions created and parse them with your ; delim.\
+                                    Additionally I want you to ALWAYS take into account possibly including\
+                                        Cat caffee and zap zone. Never have a question that makes you choose\
+                                             one or the other."),
+            HumanMessage(locations + '\n' + str(previous_quest))
+        ]
+        response = model.invoke(messages)
+        if initial is False:
+            question = response.content.split(';')[0]
+            choice_1 = response.content.split(';')[1].strip()
+            choice_2 = response.content.split(';')[2].strip()
+            qa = WouldYouRatherQA.objects.create(
+                question=question,
+                choice_1=choice_1,
+                choice_2=choice_2,
+                user=user
+            )
+            serializer = WouldYouRatherQASerializer(qa, many=False)
+        else:
+            questions = response.content.split('\n')
+            qas = []
+            for q in questions:
+                try:
+                    question = q.split(';')[0]
+                    choice_1 = q.split(';')[1]
+                    choice_2 = q.split(';')[2]
+                    qa = WouldYouRatherQA.objects.create(
+                        question=question,
+                        choice_1=choice_1,
+                        choice_2=choice_2,
+                        user=user
+                    )
+                    qas.append(qa)
+                except IndexError:
+                    print(q)
+            serializer = WouldYouRatherQASerializer(qas, many=True)
         return Response(serializer.data)
 
 
@@ -187,7 +245,7 @@ class GetWouldYouRatherQA(generics.GenericAPIView):
 
     def get_queryset(self, user_pk, qa_pk):
         if user_pk:
-            return get_object_or_404(WouldYouRatherQA, user=user_pk)
+            return get_object_or_404(User, user=user_pk)
         elif qa_pk:
             return get_object_or_404(WouldYouRatherQA, pk=qa_pk)
         else:
