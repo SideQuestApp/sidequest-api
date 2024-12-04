@@ -16,5 +16,7 @@ urlpatterns = [
     path('wouldyourather/answer/', view=views_profile.AnswerWouldYouRatherQA.as_view(), name='answer_qa'),
     path('wouldyourather/', view=views_profile.GetWouldYouRatherQA.as_view(), name='get_qa'),
     path('quest_trees/review/create', view=views.ReviewQuest.as_view(), name='review_quest'),
-    path('quest_trees/review/get', view=views.GetReviews.as_view(), name='get_quest_reviews')
+    path('quest_trees/review/get', view=views.GetReviews.as_view(), name='get_quest_reviews'),
+    path('quest_trees/location_review/add', view=views.ReviewLocation.as_view(), name='review_location'),
+    path('quest_trees/location_review/get', view=views.GetLocationReviews.as_view(), name='get_location_reviews')
 ]

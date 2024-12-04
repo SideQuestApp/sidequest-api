@@ -4,13 +4,14 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .models import QuestTree, QuestNode, QuestReviews
+from .models import QuestTree, QuestNode, QuestReviews, LocationReviews
 from rest_framework.permissions import AllowAny
-from .serializers import QuestTreeSerializer, QuestNodeSerializer, QuestReviewSerializer
+from .serializers import QuestTreeSerializer, QuestNodeSerializer, QuestReviewSerializer, LocationReviewSerializer
 import profiles
 from django.shortcuts import get_object_or_404
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
+from django.db.models import Q
 
 
 class GetQuestTree(generics.ListCreateAPIView):
@@ -191,7 +192,6 @@ class CreateQuest(generics.GenericAPIView):
         # body['qas'] is the would you rather questions and answers
         body = json.loads(body_unicode)
         user = self.get_queryset(body)
-
         # Quest generation using langchain
         # !Need a func to asing a default chain to user
         model = ChatOpenAI(model=user.chain.model)
@@ -302,12 +302,24 @@ class CreateQuestNode(generics.GenericAPIView):
                 quest=current_quest_node.quest,
                 chain=user.chain
             )
+
             current_quest_node.next.add(new_quest_node)
             current_quest_node.save()
             quests_.append(new_quest_node)
         response = QuestNodeSerializer(quests_, many=True)
 
         return Response(response.data)
+
+
+# TODO: Create functionality for this API request
+
+
+class CreateQuestNode(generics.GenericAPIView):
+    pass  # TODO
+
+
+class UpdateQuestTree(generics.GenericAPIView):
+    pass  # TODO
 
 
 class ReviewQuest(generics.GenericAPIView):
@@ -367,3 +379,68 @@ class GetReviews(generics.ListCreateAPIView):
                                            else True)
 
         return Response(serializer.data)
+
+
+class ReviewLocation(generics.GenericAPIView):
+    """
+    *User review of location
+    """
+
+    permission_classes = (AllowAny, )
+    queryset = LocationReviews.objects.all()
+    serializer_class = LocationReviewSerializer
+
+    def get_queryset(self, pk, model):
+        return get_object_or_404(model, pk=pk)
+
+    def post(self, request, *args, **kwargs):
+        body_unicode = request.body.decode('utf-8')
+        body = json.loads(body_unicode)
+        user = self.get_queryset(body['user_pk'], profiles.models.User)
+        quest = self.get_queryset(body['quest_pk'], QuestTree)
+        score = body['score']
+        review = LocationReviews.objects.create(
+            quest=quest,
+            user=user,
+            score=score,
+            chain=user.chain,
+            latitude=quest['latitude'],
+            longitude=quest['longitude'],
+        )
+        serializer = LocationReviewSerializer(review, many=False)
+        return Response(serializer.data)
+
+
+BUFFER_DISTANCE = 0.0009
+
+
+class GetLocationReviews(generics.ListAPIView):
+    """
+    *Get location reviews within a buffer distance
+    """
+
+    serializer_class = LocationReviewSerializer
+    permission_classes = (AllowAny, )
+    queryset = LocationReviews.objects.all()
+
+    def get_queryset(self):
+
+        latitude = float(self.request.query_params.get('latitude'))
+        longitude = float(self.request.query_params.get('longitude'))
+
+        # Query reviews within the buffer range
+
+        return LocationReviews.objects.filter(
+            Q(latitude__gte=latitude - BUFFER_DISTANCE)
+            & Q(latitude__lte=latitude + BUFFER_DISTANCE)
+            & Q(longitude__gte=longitude - BUFFER_DISTANCE)
+            & Q(longitude__lte=longitude + BUFFER_DISTANCE)
+        )
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if queryset.exists():
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            return Response({"message": "No reviews found for the given coordinates."}, status=status.HTTP_404_NOT_FOUND)
