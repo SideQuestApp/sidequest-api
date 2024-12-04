@@ -311,17 +311,6 @@ class CreateQuestNode(generics.GenericAPIView):
         return Response(response.data)
 
 
-# TODO: Create functionality for this API request
-
-
-class CreateQuestNode(generics.GenericAPIView):
-    pass  # TODO
-
-
-class UpdateQuestTree(generics.GenericAPIView):
-    pass  # TODO
-
-
 class ReviewQuest(generics.GenericAPIView):
     """
     * User reviews of quests
