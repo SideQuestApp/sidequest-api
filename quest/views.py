@@ -280,8 +280,8 @@ class CreateQuestNode(generics.GenericAPIView):
         model = ChatOpenAI(model=user.chain.model)
         messages = [
             SystemMessage(content=user.chain.system_prompt),
-            HumanMessage(content=locations + '\n' + "Would you rather QA" +
-                         str(body['qa']) + '\n' + "CURRENT QUEST NODE"
+            HumanMessage(content=locations + '\n' + "Would you rather QA"
+                         + str(body['qa']) + '\n' + "CURRENT QUEST NODE"
                          + str(current_quest_node)
                          + "LAST QUEST NODE:" + str(last_quest_node)),
         ]
@@ -309,17 +309,6 @@ class CreateQuestNode(generics.GenericAPIView):
         response = QuestNodeSerializer(quests_, many=True)
 
         return Response(response.data)
-
-
-# TODO: Create functionality for this API request
-
-
-class CreateQuestNode(generics.GenericAPIView):
-    pass  # TODO
-
-
-class UpdateQuestTree(generics.GenericAPIView):
-    pass  # TODO
 
 
 class ReviewQuest(generics.GenericAPIView):
